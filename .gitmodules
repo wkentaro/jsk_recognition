@@ -1,6 +1,7 @@
 [submodule ".travis"]
 	path = .travis
-	url = git://github.com/jsk-ros-pkg/jsk_travis
+	url = git://github.com/wkentaro/jsk_travis
+	version = fix-travis-upgraded
 [submodule "jsk_perception/slic"]
 	path = jsk_perception/slic
 	url = https://github.com/garaemon/SLIC-Superpixels.git
