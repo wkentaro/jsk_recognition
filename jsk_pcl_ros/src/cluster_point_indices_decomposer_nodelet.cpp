@@ -616,11 +616,14 @@ namespace jsk_pcl_ros
     center_pose_array.header = input->header;
     for (size_t i = 0; i < argsort.size(); i++)
     {
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr extracted_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr segmented_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-      
+      std::vector<int> nan_indices;
+
       pcl::PointIndices::Ptr segmented_indices (new pcl::PointIndices);
       extract.setIndices(converted_indices[argsort[i]]);
-      extract.filter(*segmented_cloud);
+      extract.filter(*extracted_cloud);
+      pcl::removeNaNFromPointCloud(*extracted_cloud, *segmented_cloud, nan_indices);
       if (publish_clouds_) {
         sensor_msgs::PointCloud2::Ptr out_cloud(new sensor_msgs::PointCloud2);
         pcl::toROSMsg(*segmented_cloud, *out_cloud);
