@@ -109,6 +109,8 @@ else ($ENV{TRAVIS_JOB_ID})
   add_definitions("-O2 -g")
 endif ($ENV{TRAVIS_JOB_ID})
 
+jsk_pcl_util_nodelet(src/cluster_point_indices_to_label_nodelet.cpp "jsk_pcl_utils/ClusterPointIndicesToLabel"
+  "cluster_point_indices_to_label")
 jsk_pcl_util_nodelet(src/bounding_box_array_to_bounding_box_nodelet.cpp "jsk_pcl_utils/BoundingBoxArrayToBoundingBox"
   "bounding_box_array_to_bounding_box")
 jsk_pcl_util_nodelet(src/normal_flip_to_frame_nodelet.cpp "jsk_pcl_utils/NormalFlipToFrame"
