@@ -1,0 +1,217 @@
+<launch>
+
+  <arg name="gui" default="true" />
+
+  <!--
+  <include file="$(find jsk_pcl_ros)/sample/include/play_rosbag_arc2017_depth_insensible_3objects.launch" />
+  -->
+  <include file="$(find openni2_launch)/launch/openni2.launch">
+    <arg name="depth_registration" value="false" />
+    <arg name="publish_tf" value="false" />
+  </include>
+  <node name="static_tf_publisher_camera_link"
+        pkg="tf" type="static_transform_publisher"
+        args="0.0 0.0 1.0 0 0 3.14 camera_link camera_depth_optical_frame 20" />
+  <node name="static_tf_publisher"
+        pkg="tf" type="static_transform_publisher"
+        args="0.04 0.01 -0.08 0 0 0 camera_depth_optical_frame camera_rgb_optical_frame 20" />
+
+  <group if="$(arg gui)">
+    <node name="rviz"
+          pkg="rviz" type="rviz"
+          args="-d $(find jsk_pcl_ros)/sample/rviz/estimate_3d_from_label.rviz">
+    </node>
+  </group>
+
+  <arg name="INPUT_IMAGE" value="/camera/rgb/image_rect_color" />
+  <arg name="MANAGER" value="/camera/camera_nodelet_manager" />
+
+  <node name="mask_image_generator"
+        pkg="nodelet" type="nodelet"
+        args="load jsk_perception/MaskImageGenerator $(arg MANAGER)">
+    <remap from="~input" to="$(arg INPUT_IMAGE)" />
+    <rosparam>
+      offset_x: 0
+      offset_y: 0
+      width: 640
+      height: 300
+    </rosparam>
+  </node>
+  <rosparam ns="label_names" file="$(find jsk_arc2017_common)/config/label_names.yaml" />
+  <node name="fcn_object_segmentation"
+        pkg="jsk_perception" type="fcn_object_segmentation.py">
+    <remap from="~input" to="$(arg INPUT_IMAGE)" />
+    <rosparam subst_value="true">
+      gpu: 0
+      backend: chainer
+      model_name: fcn32s
+      model_file: $(find jsk_arc2017_common)/data/models/fcn32s_arc2017_datasetv2_cfg003_20170704.npz
+    </rosparam>
+    <remap from="~target_names" to="label_names" />
+  </node>
+  <node name="apply_context_to_label_proba"
+        pkg="jsk_perception" type="apply_context_to_label_probability">
+    <remap from="~input" to="fcn_object_segmentation/output/proba_image" />
+    <rosparam>
+      candidates: [0, 24, 27, 28, 41]
+    </rosparam>
+  </node>
+  <node name="apply_mask_image"
+        pkg="nodelet" type="nodelet"
+        args="load jsk_perception/ApplyMaskImage $(arg MANAGER)">
+    <remap from="~input" to="apply_context_to_label_proba/output/label" />
+    <remap from="~input/mask" to="mask_image_generator/output" />
+    <rosparam>
+      clip: false
+    </rosparam>
+  </node>
+
+  <node name="label_image_decomposer"
+        pkg="jsk_perception" type="label_image_decomposer.py">
+    <remap from="~input" to="$(arg INPUT_IMAGE)" />
+    <remap from="~input/label" to="apply_mask_image/output" />
+    <rosparam>
+      queue_size: 100
+    </rosparam>
+    <remap from="~label_names" to="label_names" />
+  </node>
+  <node name="label_to_mask"
+        pkg="nodelet" type="nodelet"
+        args="load jsk_perception/LabelToMaskImage $(arg MANAGER)">
+    <remap from="~input" to="apply_mask_image/output" />
+    <rosparam>
+      label_value: 24
+    </rosparam>
+  </node>
+  <node name="mask_to_point_indices"
+        pkg="nodelet" type="nodelet"
+        args="load jsk_pcl_utils/MaskImageToPointIndices $(arg MANAGER)">
+    <remap from="~input" to="label_to_mask/output" />
+  </node>
+  <node name="extract_indices"
+        pkg="nodelet" type="nodelet"
+        args="load jsk_pcl/ExtractIndices $(arg MANAGER)">
+    <remap from="~input" to="/camera/depth_registered/points" />
+    <remap from="~indices" to="mask_to_point_indices/output" />
+    <rosparam>
+      keep_organized: true
+      approximate_sync: true
+      queue_size: 200
+    </rosparam>
+  </node>
+  <node name="resize_points_publisher"
+        pkg="nodelet" type="nodelet"
+        args="load jsk_pcl/ResizePointsPublisher $(arg MANAGER)">
+    <remap from="~input" to="extract_indices/output" />
+    <rosparam>
+      step_x: 2
+      step_y: 2
+    </rosparam>
+  </node>
+  <group ns="/camera/rgb">
+    <node name="half"
+          pkg="nodelet" type="nodelet"
+          args="load image_proc/resize $(arg MANAGER)">
+      <remap from="image" to="image_rect_color" />
+      <remap from="~image" to="~image_rect_color" />
+      <rosparam>
+        scale_width: 0.5
+        scale_height: 0.5
+      </rosparam>
+    </node>
+  </group>
+  <node name="euclidean_clustering"
+        pkg="nodelet" type="nodelet"
+        args="load jsk_pcl/EuclideanClustering $(arg MANAGER)">
+    <remap from="~input" to="resize_points_publisher/output" />
+  </node>
+  <!--
+  <node name="cluster_indices_to_label"
+        pkg="nodelet" type="nodelet"
+        args="standalone jsk_pcl_utils/ClusterPointIndicesToLabel">
+    <remap from="~input/camera_info" to="/camera/rgb/half/camera_info" />
+    <remap from="~input/cluster_indices" to="euclidean_clustering/output" />
+  </node>
+  <group ns="cluster_indices_to_label">
+    <node name="resize"
+          pkg="nodelet" type="nodelet"
+          args="standalone image_proc/resize">
+      <remap from="image" to="output" />
+      <rosparam>
+        interpolation: 0  # Nearest
+        scale_height: 2.0
+        scale_width: 2.0
+      </rosparam>
+    </node>
+  </group>
+  <node name="label_image_decomposer_instances"
+        pkg="jsk_perception" type="label_image_decomposer.py">
+    <remap from="~input" to="$(arg INPUT_IMAGE)" />
+    <remap from="~input/label" to="cluster_indices_to_label/resize/image" />
+    <rosparam>
+      approximate_sync: true
+      queue_size: 100
+    </rosparam>
+  </node>
+  -->
+  <group ns="/camera/depth_registered/sw_registered">
+    <node name="half"
+          pkg="nodelet" type="nodelet"
+          args="load image_proc/resize $(arg MANAGER)">
+      <remap from="image" to="/camera/depth_registered/sw_registered/image_rect" />
+      <remap from="~image" to="~image_rect" />
+      <rosparam>
+        scale_height: 0.5
+        scale_width: 0.5
+      </rosparam>
+    </node>
+  </group>
+  <node name="depth_estimation_for_transparent_objects"
+        pkg="nodelet" type="nodelet"
+        args="standalone jsk_pcl/DepthEstimationForTransparentObjectsFromObjectDepth">
+    <remap from="~input/depth" to="/camera/depth_registered/sw_registered/half/image_rect" />
+    <remap from="~input/cluster_indices" to="euclidean_clustering/output" />
+    <remap from="~output" to="~half/output" />
+  </node>
+  <group ns="depth_estimation_for_transparent_objects">
+    <node name="output"
+          pkg="nodelet" type="nodelet"
+          args="load image_proc/resize $(arg MANAGER)">
+      <remap from="image" to="half/output" />
+      <remap from="~image" to="~" />
+      <rosparam>
+        scale_height: 2.0
+        scale_width: 2.0
+      </rosparam>
+    </node>
+    <node name="relay"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_topic_tools/Relay $(arg MANAGER)">
+      <remap from="~input" to="/camera/rgb/camera_info" />
+      <remap from="~output" to="camera_info" />
+    </node>
+    <node name="output_view"
+          pkg="image_view" type="image_view">
+      <remap from="image" to="output" />
+      <remap from="~output" to="~" />
+      <rosparam>
+        gui: false
+        colormap: 2
+        min_image_value: 0.5
+        max_image_value: 2.0
+      </rosparam>
+    </node>
+    <node name="point_cloud_xyzrgb"
+          pkg="nodelet" type="nodelet"
+          args="standalone depth_image_proc/point_cloud_xyzrgb">
+      <remap from="rgb/camera_info" to="/camera/rgb/camera_info" />
+      <remap from="rgb/image_rect_color" to="/camera/rgb/image_rect_color" />
+      <remap from="depth_registered/image_rect" to="output" />
+      <rosparam>
+        approximate_sync: true
+        queue_size: 100
+      </rosparam>
+    </node>
+  </group>
+
+</launch>
