@@ -125,20 +125,10 @@ namespace jsk_pcl_ros
         int img_y = index / depth.cols;
         int img_x = index % depth.cols;
 
-        float depth_value = depth.at<float>(img_y, img_x);
-        if (std::isnan(depth_value))
-        {
-          continue;
-        }
-
-        float object_depth = depth_value - min_depth;
-        if (object_depth < object_depth_ref)
-        {
-          // max_depth is surface of other object for transparent object.
-          // object_depth_ref is a minimum thickness of object.
-          // so estimated surface depth of transparent object is max_depth - object_depth_ref.
-          depth_estimated.at<float>(img_y, img_x) = max_depth - object_depth_ref;
-        }
+        // max_depth is surface of other object for transparent object.
+        // object_depth_ref is a minimum thickness of object.
+        // so estimated surface depth of transparent object is max_depth - object_depth_ref.
+        depth_estimated.at<float>(img_y, img_x) = max_depth - object_depth_ref;
       }
     }
 
