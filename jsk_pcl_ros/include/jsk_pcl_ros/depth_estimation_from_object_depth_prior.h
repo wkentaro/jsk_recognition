@@ -51,8 +51,7 @@ namespace jsk_pcl_ros
   {
   public:
     typedef message_filters::sync_policies::ApproximateTime<
-      sensor_msgs::Image,
-      jsk_recognition_msgs::ClusterPointIndices> SyncPolicy;
+      sensor_msgs::Image, sensor_msgs::Image> SyncPolicy;
     DepthEstimationFromObjectDepthPrior():
       DiagnosticNodelet("DepthEstimationFromObjectDepthPrior") { }
   protected:
@@ -61,9 +60,9 @@ namespace jsk_pcl_ros
     virtual void unsubscribe();
     virtual void estimate(
       const sensor_msgs::Image::ConstPtr& depth_msg,
-      const jsk_recognition_msgs::ClusterPointIndices::ConstPtr& cluster_indices_msg);
+      const sensor_msgs::Image::ConstPtr& label_msg);
     message_filters::Subscriber<sensor_msgs::Image> sub_depth_;
-    message_filters::Subscriber<jsk_recognition_msgs::ClusterPointIndices> sub_indices_;
+    message_filters::Subscriber<sensor_msgs::Image> sub_label_;
     boost::shared_ptr<message_filters::Synchronizer<SyncPolicy> >sync_;
     ros::Publisher pub_depth_;
   private:

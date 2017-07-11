@@ -33,7 +33,10 @@
  *********************************************************************/
 
 #include <limits>
+#include <map>
 #include <numeric>
+#include <utility>
+#include <vector>
 
 #include <cv_bridge/cv_bridge.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -53,9 +56,9 @@ namespace jsk_pcl_ros
   void DepthEstimationFromObjectDepthPrior::subscribe()
   {
     sub_depth_.subscribe(*pnh_, "input/depth", 1);
-    sub_indices_.subscribe(*pnh_, "input/cluster_indices", 1);
+    sub_label_.subscribe(*pnh_, "input/label", 1);
     sync_ = boost::make_shared<message_filters::Synchronizer<SyncPolicy> >(100);
-    sync_->connectInput(sub_depth_, sub_indices_);
+    sync_->connectInput(sub_depth_, sub_label_);
     sync_->registerCallback(
       boost::bind(&DepthEstimationFromObjectDepthPrior::estimate,
                   this, _1, _2));
@@ -64,53 +67,78 @@ namespace jsk_pcl_ros
   void DepthEstimationFromObjectDepthPrior::unsubscribe()
   {
     sub_depth_.unsubscribe();
-    sub_indices_.unsubscribe();
+    sub_label_.unsubscribe();
   }
 
   void DepthEstimationFromObjectDepthPrior::estimate(
     const sensor_msgs::Image::ConstPtr& depth_msg,
-    const jsk_recognition_msgs::ClusterPointIndices::ConstPtr& cluster_indices_msg)
+    const sensor_msgs::Image::ConstPtr& label_msg)
   {
     vital_checker_->poke();
-    if (depth_msg->header.frame_id != cluster_indices_msg->header.frame_id)
+
+    // validate inputs
+    if (depth_msg->header.frame_id != label_msg->header.frame_id)
     {
       NODELET_FATAL("Depth and cluster indices have different frame_id: [%s, %s]",
                     depth_msg->header.frame_id.c_str(),
-                    cluster_indices_msg->header.frame_id.c_str());
+                    label_msg->header.frame_id.c_str());
       return;
     }
     if (depth_msg->encoding != sensor_msgs::image_encodings::TYPE_32FC1)
     {
-      NODELET_FATAL("Unsupported encoding. Expected: 32FC1, Actual: %s",
+      NODELET_FATAL("Unsupported depth encoding. Expected: 32FC1, Actual: %s",
                     depth_msg->encoding.c_str());
       return;
     }
-    cv::Mat depth = cv_bridge::toCvShare(depth_msg, depth_msg->encoding)->image;
-
-    std::map<int, std::vector<float> > instance_depths;
-    for (int i = 0; i < cluster_indices_msg->cluster_indices.size(); i++)
+    if (label_msg->encoding != sensor_msgs::image_encodings::TYPE_32SC1)
     {
-      pcl_msgs::PointIndices indices = cluster_indices_msg->cluster_indices[i];
-      for (size_t j = 0; j < indices.indices.size(); j++)
+      NODELET_FATAL("Unsupported label encoding. Expected: 32SC1, Actual: %s",
+                    label_msg->encoding.c_str());
+      return;
+    }
+    if (depth_msg->height != label_msg->height || depth_msg->width != label_msg->width)
+    {
+      NODELET_FATAL("Depth and label image size must match. Depth: (%d, %d), Label: (%d, %d)",
+                    depth_msg->height, depth_msg->width, label_msg->height, label_msg->width);
+      return;
+    }
+
+    // depth image [m]
+    cv::Mat depth = cv_bridge::toCvShare(depth_msg, depth_msg->encoding)->image;
+    // object instance label
+    cv::Mat label = cv_bridge::toCvShare(label_msg, label_msg->encoding)->image;
+
+    // collect instance depth values
+    std::map<int, std::vector<float> > instance_depths;
+    std::map<int, std::vector<int> > instance_indices;
+    for (size_t j = 0; j < label.rows; j++)
+    {
+      for (size_t i = 0; i < label.cols; i++)
       {
-        int index = indices.indices[j];
-        int img_y = index / depth.cols;
-        int img_x = index % depth.cols;
-        float depth_value = depth.at<float>(img_y, img_x);
+        int instance_id = label.at<int>(j, i);
+        if (instance_id < 0)
+        {
+          continue;
+        }
+
+        float depth_value = depth.at<float>(j, i);
+        int index = j * label.cols + i;
         if (!std::isnan(depth_value))
         {
-          instance_depths[i].push_back(depth_value);
+          instance_depths[instance_id].push_back(depth_value);
+          instance_indices[instance_id].push_back(index);
         }
       }
     }
 
+    // estimate depth for each object instances
     cv::Mat depth_estimated = cv::Mat(depth.rows, depth.cols, CV_32FC1);
     depth_estimated.setTo(std::numeric_limits<float>::quiet_NaN());
     for (std::map<int, std::vector<float> >::iterator it = instance_depths.begin();
          it != instance_depths.end(); it++)
     {
       float object_depth_ref = 0.1;  // 10cm
-      int i = it->first;
+      int instance_id = it->first;
       std::vector<float> depth_values = it->second;
 
       std::pair<std::vector<float>::const_iterator, std::vector<float>::const_iterator> minmax =
@@ -118,10 +146,10 @@ namespace jsk_pcl_ros
       float min_depth = *minmax.first;
       float max_depth = *minmax.second;
 
-      pcl_msgs::PointIndices indices = cluster_indices_msg->cluster_indices[i];
-      for (size_t j = 0; j < indices.indices.size(); j++)
+      std::vector<int> indices = instance_indices[instance_id];
+      for (size_t i = 0; i < indices.size(); i++)
       {
-        int index = indices.indices[j];
+        int index = indices[i];
         int img_y = index / depth.cols;
         int img_x = index % depth.cols;
 
@@ -136,7 +164,6 @@ namespace jsk_pcl_ros
       depth_msg->header,
       sensor_msgs::image_encodings::TYPE_32FC1,
       depth_estimated));
-
   }
 }  // namespace jsk_pcl_ros
 
