@@ -110,6 +110,13 @@ namespace jsk_pcl_ros
     }
 #endif
     pcl_conversions::moveFromPCL(output, out_cloud_msg);
+    if (keep_organized_ && out_cloud_msg.height == 1)
+    {
+      NODELET_WARN_THROTTLE(
+        10,
+        "Tried to keep organized point cloud, but failed. "
+        "Input is not organized or something is wrong.");
+    }
 
     out_cloud_msg.header = cloud_msg->header;
     pub_.publish(out_cloud_msg);
