@@ -32,8 +32,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#ifndef JSK_PCL_ROS_DEPTH_ESTIMATION_FOR_TRANSPARENT_OBJECTS_FROM_OBJECT_DEPTH_H_
-#define JSK_PCL_ROS_DEPTH_ESTIMATION_FOR_TRANSPARENT_OBJECTS_FROM_OBJECT_DEPTH_H_
+#ifndef JSK_PCL_ROS_DEPTH_ESTIMATION_FROM_OBJECT_DPETH_PRIOR_H_
+#define JSK_PCL_ROS_DEPTH_ESTIMATION_FROM_OBJECT_DPETH_PRIOR_H_
 
 #include <jsk_recognition_msgs/ClusterPointIndices.h>
 #include <jsk_topic_tools/diagnostic_nodelet.h>
@@ -47,14 +47,14 @@
 
 namespace jsk_pcl_ros
 {
-  class DepthEstimationForTransparentObjectsFromObjectDepth: public jsk_topic_tools::DiagnosticNodelet
+  class DepthEstimationFromObjectDepthPrior: public jsk_topic_tools::DiagnosticNodelet
   {
   public:
     typedef message_filters::sync_policies::ApproximateTime<
       sensor_msgs::Image,
       jsk_recognition_msgs::ClusterPointIndices> SyncPolicy;
-    DepthEstimationForTransparentObjectsFromObjectDepth():
-      DiagnosticNodelet("DepthEstimationForTransparentObjectsFromObjectDepth") { }
+    DepthEstimationFromObjectDepthPrior():
+      DiagnosticNodelet("DepthEstimationFromObjectDepthPrior") { }
   protected:
     virtual void onInit();
     virtual void subscribe();
@@ -70,4 +70,4 @@ namespace jsk_pcl_ros
   };
 }  // namespace jsk_pcl_ros
 
-#endif  // JSK_PCL_ROS_DEPTH_ESTIMATION_FOR_TRANSPARENT_OBJECTS_FROM_OBJECT_DEPTH_H_
+#endif  // JSK_PCL_ROS_DEPTH_ESTIMATION_FROM_OBJECT_DPETH_PRIOR_H_

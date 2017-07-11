@@ -1,6 +1,6 @@
 <library path="libjsk_pcl_ros">
-  <class name="jsk_pcl/DepthEstimationForTransparentObjectsFromObjectDepth"
-         type="jsk_pcl_ros::DepthEstimationForTransparentObjectsFromObjectDepth"
+  <class name="jsk_pcl/DepthEstimationFromObjectDepthPrior"
+         type="jsk_pcl_ros::DepthEstimationFromObjectDepthPrior"
          base_class_type="nodelet::Nodelet">
   </class>
   <class name="jsk_pcl/FuseDepthImages"

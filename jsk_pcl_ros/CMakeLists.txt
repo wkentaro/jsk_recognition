@@ -155,9 +155,7 @@ jsk_pcl_nodelet_upstream(jsk_pcl_ros_utils "jsk_pcl/NormalFlipToFrame" "normal_f
 if(OPENMP_FOUND)
   jsk_pcl_nodelet(src/particle_filter_tracking_nodelet.cpp "jsk_pcl/ParticleFilterTracking" "particle_filter_tracking")
 endif()
-jsk_pcl_nodelet(src/depth_estimation_for_transparent_objects_from_object_depth.cpp
-                "jsk_pcl/DepthEstimationForTransparentObjectsFromObjectDepth"
-                "depth_estimation_for_transparent_objects_from_object_depth")
+jsk_pcl_nodelet(src/depth_estimation_from_object_depth_prior.cpp "jsk_pcl/DepthEstimationFromObjectDepthPrior" "depth_estimation_from_object_depth_prior")
 jsk_pcl_nodelet(src/fuse_images.cpp "jsk_pcl/FuseRGBImages" "fuse_rgb_images")
 jsk_pcl_nodelet(src/fuse_images.cpp "jsk_pcl/FuseDepthImages" "fuse_depth_images")
 jsk_pcl_nodelet(src/voxel_grid_downsample_manager_nodelet.cpp "jsk_pcl/VoxelGridDownsampleManager" "voxel_grid_downsample_manager")

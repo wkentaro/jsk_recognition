@@ -39,35 +39,35 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <sensor_msgs/image_encodings.h>
 
-#include "jsk_pcl_ros/depth_estimation_for_transparent_objects_from_object_depth.h"
+#include "jsk_pcl_ros/depth_estimation_from_object_depth_prior.h"
 
 namespace jsk_pcl_ros
 {
-  void DepthEstimationForTransparentObjectsFromObjectDepth::onInit()
+  void DepthEstimationFromObjectDepthPrior::onInit()
   {
     DiagnosticNodelet::onInit();
     pub_depth_ = advertise<sensor_msgs::Image>(*pnh_, "output", 1);
     onInitPostProcess();
   }
 
-  void DepthEstimationForTransparentObjectsFromObjectDepth::subscribe()
+  void DepthEstimationFromObjectDepthPrior::subscribe()
   {
     sub_depth_.subscribe(*pnh_, "input/depth", 1);
     sub_indices_.subscribe(*pnh_, "input/cluster_indices", 1);
     sync_ = boost::make_shared<message_filters::Synchronizer<SyncPolicy> >(100);
     sync_->connectInput(sub_depth_, sub_indices_);
     sync_->registerCallback(
-      boost::bind(&DepthEstimationForTransparentObjectsFromObjectDepth::estimate,
+      boost::bind(&DepthEstimationFromObjectDepthPrior::estimate,
                   this, _1, _2));
   }
 
-  void DepthEstimationForTransparentObjectsFromObjectDepth::unsubscribe()
+  void DepthEstimationFromObjectDepthPrior::unsubscribe()
   {
     sub_depth_.unsubscribe();
     sub_indices_.unsubscribe();
   }
 
-  void DepthEstimationForTransparentObjectsFromObjectDepth::estimate(
+  void DepthEstimationFromObjectDepthPrior::estimate(
     const sensor_msgs::Image::ConstPtr& depth_msg,
     const jsk_recognition_msgs::ClusterPointIndices::ConstPtr& cluster_indices_msg)
   {
@@ -151,4 +151,4 @@ namespace jsk_pcl_ros
 }  // namespace jsk_pcl_ros
 
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(jsk_pcl_ros::DepthEstimationForTransparentObjectsFromObjectDepth, nodelet::Nodelet);
+PLUGINLIB_EXPORT_CLASS(jsk_pcl_ros::DepthEstimationFromObjectDepthPrior, nodelet::Nodelet);
