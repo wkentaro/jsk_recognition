@@ -94,7 +94,7 @@ void ClusterPointIndicesToLabel::convert(
   }
 
   cv::Mat label = cv::Mat::zeros(height, width, CV_32SC1);
-  label.setTo(0);
+  label.setTo(-1);
 
   for (size_t i = 0; i < cluster_indices_msg->cluster_indices.size(); i++)
   {
@@ -104,7 +104,7 @@ void ClusterPointIndicesToLabel::convert(
       int index = indices.indices[j];
       int img_x = index % width;
       int img_y = index / width;
-      int instance_id = i + 1;
+      int instance_id = i;
       label.at<int>(img_y, img_x) = instance_id;
     }
   }
