@@ -230,4 +230,10 @@
       Convert voxel represented by visualization_msgs::MarkerArray to PointCloud.
     </description>
   </class>
+
+  <!-- TODO(wkentaro): move to upstream. keeping consistency with depth_image_proc/point_cloud_xyz -->
+  <class name="depth_image_proc/point_cloud_xyzll"
+         type="depth_image_proc::PointCloudXyzllNodelet"
+         base_class_type="nodelet::Nodelet">
+  </class>
 </library>

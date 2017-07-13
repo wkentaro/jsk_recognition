@@ -109,6 +109,9 @@ else ($ENV{TRAVIS_JOB_ID})
   add_definitions("-O2 -g")
 endif ($ENV{TRAVIS_JOB_ID})
 
+# TODO(wkentaro): move to upstream. keeping consistency with depth_image_proc/point_cloud_xyz
+jsk_pcl_util_nodelet(src/point_cloud_xyzll.cpp "depth_image_proc/point_cloud_xyzll" "point_cloud_xyzll")
+
 jsk_pcl_util_nodelet(src/cluster_point_indices_to_label_nodelet.cpp "jsk_pcl_utils/ClusterPointIndicesToLabel"
   "cluster_point_indices_to_label")
 jsk_pcl_util_nodelet(src/bounding_box_array_to_bounding_box_nodelet.cpp "jsk_pcl_utils/BoundingBoxArrayToBoundingBox"
