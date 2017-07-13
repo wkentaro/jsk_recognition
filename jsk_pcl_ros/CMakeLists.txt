@@ -155,6 +155,7 @@ jsk_pcl_nodelet_upstream(jsk_pcl_ros_utils "jsk_pcl/NormalFlipToFrame" "normal_f
 if(OPENMP_FOUND)
   jsk_pcl_nodelet(src/particle_filter_tracking_nodelet.cpp "jsk_pcl/ParticleFilterTracking" "particle_filter_tracking")
 endif()
+jsk_pcl_nodelet(src/pointcloud_xyzll_decomposer_nodelet.cpp "jsk_pcl/PointCloudXYZLLDecomposer" "pointcloud_xyzll_decomposer")
 jsk_pcl_nodelet(src/depth_estimation_from_object_depth_prior.cpp "jsk_pcl/DepthEstimationFromObjectDepthPrior" "depth_estimation_from_object_depth_prior")
 jsk_pcl_nodelet(src/fuse_images.cpp "jsk_pcl/FuseRGBImages" "fuse_rgb_images")
 jsk_pcl_nodelet(src/fuse_images.cpp "jsk_pcl/FuseDepthImages" "fuse_depth_images")

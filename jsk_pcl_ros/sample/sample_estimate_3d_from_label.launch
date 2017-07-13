@@ -116,6 +116,11 @@
         pkg="nodelet" type="nodelet"
         args="load jsk_pcl/EuclideanClustering $(arg MANAGER)">
     <remap from="~input" to="resize_points_publisher/output" />
+    <rosparam>
+      min_size: 100
+      max_size: 100000
+      tolerance: 0.05
+    </rosparam>
   </node>
   <node name="cluster_indices_to_label"
         pkg="nodelet" type="nodelet"
@@ -127,7 +132,7 @@
   <group ns="cluster_indices_to_label">
     <node name="resize"
           pkg="nodelet" type="nodelet"
-          args="standalone image_proc/resize">
+          args="load image_proc/resize $(arg MANAGER)">
       <remap from="image" to="half/output" />
       <remap from="~image" to="output" />
       <rosparam>
@@ -192,7 +197,7 @@
     </node>
     <node name="point_cloud_xyzl"
           pkg="nodelet" type="nodelet"
-          args="standalone depth_image_proc/point_cloud_xyzl $(arg MANAGER)">
+          args="load depth_image_proc/point_cloud_xyzl $(arg MANAGER)">
       <remap from="label/camera_info" to="/camera/rgb/camera_info" />
       <remap from="label/image_rect" to="/apply_mask_image/output" />
       <remap from="depth_registered/image_rect" to="output" />
@@ -204,7 +209,7 @@
     -->
     <node name="point_cloud_xyzll"
           pkg="nodelet" type="nodelet"
-          args="standalone depth_image_proc/point_cloud_xyzll $(arg MANAGER)">
+          args="load depth_image_proc/point_cloud_xyzll $(arg MANAGER)">
       <remap from="label/camera_info" to="/camera/rgb/camera_info" />
       <remap from="label/label_class" to="/apply_mask_image/output" />
       <remap from="label/label_instance" to="/cluster_indices_to_label/output" />
@@ -217,11 +222,12 @@
   </group>
 
   <group ns="/camera">
-    <node name="point_cloud_xyzl"
+    <node name="point_cloud_xyzll"
           pkg="nodelet" type="nodelet"
-          args="load depth_image_proc/point_cloud_xyzl $(arg MANAGER)">
+          args="load depth_image_proc/point_cloud_xyzll $(arg MANAGER)">
       <remap from="label/camera_info" to="rgb/camera_info" />
-      <remap from="label/label" to="/apply_mask_image/output" />
+      <remap from="label/label_class" to="/apply_mask_image/output" />
+      <remap from="label/label_instance" to="/cluster_indices_to_label/output" />
       <remap from="depth_registered/image_rect" to="depth_registered/sw_registered/image_rect" />
       <remap from="depth_registered/points" to="label/depth_registered/points" />
       <rosparam>
@@ -229,5 +235,21 @@
       </rosparam>
     </node>
   </group>
+
+  <node name="pointcloud_concatenate_data_sync"
+        pkg="nodelet" type="nodelet"
+        args="standalone pcl/PointCloudConcatenateDataSynchronizer $(arg MANAGER)">
+    <rosparam>
+      output_frame: camera_rgb_optical_frame
+      input_topics:
+        - /camera/label/depth_registered/points
+        - /depth_estimation_from_object_depth_prior/points
+    </rosparam>
+  </node>
+  <node name="pointcloud_xyzll_decomposer"
+        pkg="nodelet" type="nodelet"
+        args="load jsk_pcl/PointCloudXYZLLDecomposer $(arg MANAGER)">
+    <remap from="~input" to="pointcloud_concatenate_data_sync/output" />
+  </node>
 
 </launch>
